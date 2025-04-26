@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 # Load your custom trained model
-model = YOLO(r"C:\Users\Yu Jia\Desktop\Smart Food Pricing System\runs\detect\train10\weights\best.pt")  # Replace with your trained model path
+model = YOLO("runs/detect/train10/weights/best.pt")  # Replace with your trained model path
 
 # Set page config
 st.set_page_config(page_title="Smart Food Pricing System", layout="wide")
