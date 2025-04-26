@@ -121,24 +121,31 @@ with right_col:
             label = class_names[cls]
             pretty_label = label.replace("_", " ").title()
 
-            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+            if label not in price_config:
+                continue  # Skip unknown labels
 
+            # Get bounding box coordinates
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
             box_area = abs((x2 - x1) * (y2 - y1))
-            portion_ratio = box_area / total_pixels
+            portion_ratio = box_area / total_pixels  # Portion relative to image
 
             if box_area > 0 and label in price_config:
-                if portion_ratio >= 0.5:
-                    amount = "Much"
-                    multiplier = 3.0
-                elif portion_ratio >= 0.3:
-                    amount = "Normal"
-                    multiplier = 2.0
-                elif portion_ratio >= 0.2:
-                    amount = "Less"
-                    multiplier = 1.0
-                else:
-                    amount = "Little"
-                    multiplier = 0.5
+                # --- Portion thresholds ---
+                if portion_ratio < 0.03:      
+                    portion = 'small'
+                    multiplier = 0.6
+                elif portion_ratio < 0.08:   
+                    portion = 'medium-small'
+                    multiplier = 0.8
+                elif portion_ratio < 0.12:    
+                    portion = 'medium'
+                    multiplier = 1
+                elif portion_ratio < 0.16:   
+                    portion = 'medium-large'
+                    multiplier = 1.2
+                else:                       
+                    portion = 'large'
+                    multiplier = 1.5
 
                 base_price = price_config[label]["base_price"]
                 item_price = (base_price * multiplier)
@@ -147,7 +154,7 @@ with right_col:
                 detected_items.append([
                     pretty_label,
                     f"{portion_ratio*100:.2f}%",  # Convert to percentage
-                    amount,
+                    portion,
                     f"RM {item_price:.2f}"
                 ])
     else:
