@@ -16,6 +16,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+
 # Custom CSS to hide Streamlit footer and add your name
 st.markdown("""
     <style>
@@ -33,39 +34,7 @@ st.markdown("""
     <div class="footer-text">Made by Fighting17918</div>
 """, unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
-# Create two columns
-left_col, right_col = st.columns(2)
-
-# --- LEFT SIDE (Upload Image) ---
-with left_col:
-    if uploaded_file is not None:
-        st.markdown("<h2 style='text-align: center; color: white;'>🍴 Uploaded Image</h2>", unsafe_allow_html=True)
-        image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="Uploaded Image", use_column_width=True)
-
-# --- RIGHT SIDE (Detection Results) ---
-with right_col:
-    if uploaded_file is not None:
-        st.markdown("<h2 style='text-align: center; color: white;'>🔎 Detection Results</h2>", unsafe_allow_html=True)
-        img_array = np.array(image)
-        height, width = img_array.shape[:2]
-        total_pixels = height * width
-        
-        # Run inference
-        results = model.predict(image)
-
-        # Draw boxes on the image
-        annotated_img = results[0].plot()
-        st.image(annotated_img, caption="Detection Result", use_column_width=True)
-
-        # Calculate total price
-        class_names = model.names
-        boxes = results[0].boxes
-        total_price = 0
-        detected_items = []
-
-        price_config = {
+price_config = {
             # (your price_config dictionary here, keep it unchanged)
             "AW cola": {"base_price": 1.50, "price_per_pixel": 0.00002},
             "Beijing Beef": {"base_price": 3.50, "price_per_pixel": 0.0001},
@@ -104,6 +73,53 @@ with right_col:
             "triangle_hash_brown": {"base_price": 1.20, "price_per_pixel": 0.00004},
             "water_spinach": {"base_price": 1.80, "price_per_pixel": 0.00006}
         }
+        
+def adjust_prices(price_config):
+    st.sidebar.header("🔧 Adjust Item Prices")
+
+    updated_config = {}
+    for item, pricing in price_config.items():
+        with st.sidebar.expander(f"⚙️ {item.replace('_', ' ').title()}", expanded=False):
+            base_price = st.number_input(f"Base Price for {item}", min_value=0.0, value=pricing["base_price"], step=0.1)
+            price_per_pixel = st.number_input(f"Price per Pixel for {item}", min_value=0.0, value=pricing["price_per_pixel"], format="%.8f", step=0.00001)
+            updated_config[item] = {"base_price": base_price, "price_per_pixel": price_per_pixel}
+    return updated_config
+
+price_config = adjust_prices(price_config)
+
+
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+# Create two columns
+        
+left_col, right_col = st.columns(2)
+
+# --- LEFT SIDE (Upload Image) ---
+with left_col:
+    if uploaded_file is not None:
+        st.markdown("<h2 style='text-align: center; color: white;'>🍴 Uploaded Image</h2>", unsafe_allow_html=True)
+        image = Image.open(uploaded_file).convert("RGB")
+        st.image(image, caption="Uploaded Image", use_column_width=True)
+
+# --- RIGHT SIDE (Detection Results) ---
+with right_col:
+    if uploaded_file is not None:
+        st.markdown("<h2 style='text-align: center; color: white;'>🔎 Detection Results</h2>", unsafe_allow_html=True)
+        img_array = np.array(image)
+        height, width = img_array.shape[:2]
+        total_pixels = height * width
+        
+        # Run inference
+        results = model.predict(image)
+
+        # Draw boxes on the image
+        annotated_img = results[0].plot()
+        st.image(annotated_img, caption="Detection Result", use_column_width=True)
+
+        # Calculate total price
+        class_names = model.names
+        boxes = results[0].boxes
+        total_price = 0
+        detected_items = []
 
         for box in boxes:
             cls = int(box.cls)
@@ -138,4 +154,8 @@ with right_col:
             st.write(f"{class_names[int(box.cls)]}: {area:.0f} pixels ({area/total_pixels:.1%} of image)")
     else:
         pass
+
+
+
+
 
