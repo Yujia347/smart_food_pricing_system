@@ -12,7 +12,7 @@ st.set_page_config(page_title="Smart Food Pricing System", layout="wide")
 st.markdown("""
     <div style="background-color: #3498db; padding: 20px; border-radius: 10px; text-align: center;">
         <h1 style="color: white;">🍛 Smart Food Pricing System</h1>
-        <p style="color: white; font-size: 18px;">Upload your meal photo and instantly get the price!</p>
+        <p style="color: white; font-size: 18px;">Upload your meal photo and instantly get an estimated price!</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -76,7 +76,7 @@ price_config = {
 def adjust_prices(price_config):
     st.sidebar.header("🔧 Adjust Item Prices")
     updated_config = {}
-    for item, pricing in price_config.items():
+    for item, pricing in sorted(price_config.items()):
         with st.sidebar.expander(f"⚙️ {item.replace('_', ' ').title()}", expanded=False):
             base_price = st.number_input(f"Base Price for {item}", min_value=0.0, value=pricing["base_price"], step=0.1)
             updated_config[item] = {"base_price": base_price}
