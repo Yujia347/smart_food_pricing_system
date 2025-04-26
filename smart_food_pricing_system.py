@@ -127,7 +127,16 @@ with right_col:
             portion_ratio = box_area / total_pixels
 
             if box_area > 0 and label in price_config:
-                item_price = (price_config[label]["base_price"] * portion_ratio * 10)
+                if portion_ratio >= 0.5:
+                    multiplier = 3.0
+                elif portion_ratio >= 0.3:
+                    multiplier = 2.0
+                elif portion_ratio >= 0.2:
+                    multiplier = 1.0
+                else:
+                    multiplier = 0.5
+                    
+                item_price = (price_config[label]["base_price"] * multiplier)
                 total_price += item_price
                 detected_items.append([pretty_label, f"RM {item_price:.2f}"])
 
