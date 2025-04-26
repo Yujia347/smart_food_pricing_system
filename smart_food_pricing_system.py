@@ -12,7 +12,7 @@ st.set_page_config(page_title="Smart Food Pricing System", layout="wide")
 st.markdown("""
     <div style="background-color: #3498db; padding: 20px; border-radius: 10px; text-align: center;">
         <h1 style="color: white;">🍛 Smart Food Pricing System</h1>
-        <p style="color: white; font-size: 18px;">Upload your meal photo and instantly get an estimated price!</p>
+        <p style="color: white; font-size: 18px;">Upload your meal photo and instantly get the price!</p>
     </div>
 """, unsafe_allow_html=True)
 
