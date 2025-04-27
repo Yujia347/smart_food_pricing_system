@@ -88,14 +88,12 @@ uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
 left_col, right_col = st.columns(2)
 
-left_col, right_col = st.columns(2)
-
 # --- LEFT SIDE (Upload Image) ---
 with left_col:
     if uploaded_file is not None:
         st.markdown("<h2 style='text-align: center;'>🍴 Uploaded Image</h2>", unsafe_allow_html=True)
         image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="Uploaded Image", use_container_width=True)
+        st.image(image, caption="Uploaded Image", use_column_width=True)
 
 detected_items = []
 # --- RIGHT SIDE (Detection Results) ---
@@ -105,72 +103,69 @@ with right_col:
         img_array = np.array(image)
         height, width = img_array.shape[:2]
         total_pixels = height * width
-
+        
         # Run inference
         results = model.predict(image)
 
         # Draw boxes on the image
         annotated_img = results[0].plot()
-        st.image(annotated_img, caption="Detection Result", use_container_width=True)
+        st.image(annotated_img, caption="Detection Result", use_column_width=True)
 
         # Calculate total price
         class_names = model.names
         boxes = results[0].boxes
         total_price = 0
 
-        if boxes is None or len(boxes) == 0:
-            
-            st.warning("⚠️ no object is detected")
-        else:
-            for box in boxes:
-                cls = int(box.cls)
-                label = class_names[cls]
-                pretty_label = label.replace("_", " ").title()
+        for box in boxes:
+            cls = int(box.cls)
+            label = class_names[cls]
+            pretty_label = label.replace("_", " ").title()
 
-                x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+            if label not in price_config:
+                continue  
 
-                box_area = abs((x2 - x1) * (y2 - y1))
-                portion_ratio = box_area / total_pixels
+            # Get bounding box coordinates
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+            box_area = abs((x2 - x1) * (y2 - y1))
+            portion_ratio = box_area / total_pixels  
 
-                if box_area > 0 and label in price_config:
+            if box_area > 0 and label in price_config:
                 # --- Portion thresholds ---
-                    if portion_ratio < 0.03:      
-                        portion = 'small'
-                        multiplier = 0.6
-                    elif portion_ratio < 0.08:   
-                        portion = 'medium-small'
-                        multiplier = 0.8
-                    elif portion_ratio < 0.12:    
-                        portion = 'medium'
-                        multiplier = 1
-                    elif portion_ratio < 0.16:   
-                        portion = 'medium-large'
-                        multiplier = 1.2
-                    else:                       
-                        portion = 'large'
-                        multiplier = 1.5
+                if portion_ratio < 0.03:      
+                    portion = 'small'
+                    multiplier = 0.6
+                elif portion_ratio < 0.08:   
+                    portion = 'medium-small'
+                    multiplier = 0.8
+                elif portion_ratio < 0.12:    
+                    portion = 'medium'
+                    multiplier = 1
+                elif portion_ratio < 0.16:   
+                    portion = 'medium-large'
+                    multiplier = 1.2
+                else:                       
+                    portion = 'large'
+                    multiplier = 1.5
 
-                    base_price = price_config[label]["base_price"]
-                    item_price = (base_price * multiplier)
-                    total_price += item_price
+                base_price = price_config[label]["base_price"]
+                item_price = (base_price * multiplier)
+                total_price += item_price
 
-                    detected_items.append([
-                        pretty_label,
-                        f"{portion_ratio*100:.2f}%",  # Convert to percentage
-                        portion,
-                        f"RM {item_price:.2f}"
-                    ])
-            
-            
-            if len(detected_items) == 0:
-                st.warning("⚠️ Detected non-food object")
-
-            if detected_items:
-                st.subheader("🧾 Detected Items and Prices")
-                price_table = pd.DataFrame(detected_items, columns=["Item", "Portion Ratio (%)", "Amount", "Item Price"])
-                price_table.index = np.arange(1, len(price_table) + 1) 
-                st.table(price_table)
+                detected_items.append([
+                    pretty_label,
+                    f"{portion_ratio*100:.2f}%",  # Convert to percentage
+                    portion,
+                    f"RM {item_price:.2f}"
+                ])
+    else:
+        pass
+    
+if detected_items:
+    st.subheader("🧾 Detected Items and Prices")
+    price_table = pd.DataFrame(detected_items, columns=["Item", "Portion Ratio (%)", "Amount", "Item Price"])
+    price_table.index = np.arange(1, len(price_table) + 1) 
+    st.table(price_table)
         
-                # Show total price
-                st.success(f"💰 Total Price: RM {total_price:.2f}")
+    # Show total price
+    st.success(f"💰 Total Price: RM {total_price:.2f}")
 
