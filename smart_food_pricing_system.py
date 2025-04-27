@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 # Load your custom trained model
-model = YOLO(r"C:\Users\HUAWEI\smart_food_pricing_system1\runs\detect\train10\weights\best.pt")  # Replace with your trained model path
+model = YOLO("runs/detect/train10/weights/best.pt")  # Replace with your trained model path
 
 # Set page config
 st.set_page_config(page_title="Smart Food Pricing System", layout="wide")
@@ -33,7 +33,7 @@ st.markdown("""
     <div class="footer-text">Made by Fighting17918</div>
 """, unsafe_allow_html=True)
 
-# Price configuration
+# Price configuration (without price_per_pixel)
 price_config = {
     "AW cola": {"base_price": 1.50},
     "Beijing Beef": {"base_price": 3.50},
@@ -103,58 +103,69 @@ with right_col:
         img_array = np.array(image)
         height, width = img_array.shape[:2]
         total_pixels = height * width
-
+        
         # Run inference
         results = model.predict(image)
 
         # Draw boxes on the image
         annotated_img = results[0].plot()
-        st.image(annotated_img, caption="Detection Result", use_container_width=True)
+        st.image(annotated_img, caption="Detection Result", use_column_width=True)
 
         # Calculate total price
         class_names = model.names
         boxes = results[0].boxes
         total_price = 0
 
-        if boxes is None or len(boxes) == 0:
-            # ⚠️ alert message if detect no object
-            st.warning("⚠️ The food could not be recognized.")
-        else:
-            for box in boxes:
-                cls = int(box.cls)
-                label = class_names[cls]
-                pretty_label = label.replace("_", " ").title()
+        for box in boxes:
+            cls = int(box.cls)
+            label = class_names[cls]
+            pretty_label = label.replace("_", " ").title()
 
-                x1, y1, x2, x2 = box.xyxy[0].cpu().numpy()
+            if label not in price_config:
+                continue  
 
-                box_area = abs((x2 - x1) * (y2 - y1))
-                portion_ratio = box_area / total_pixels
+            # Get bounding box coordinates
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+            box_area = abs((x2 - x1) * (y2 - y1))
+            portion_ratio = box_area / total_pixels  
 
-                if box_area > 0 and label in price_config:
-                    if portion_ratio >= 0.5:
-                        amount = "Much"
-                        multiplier = 3.0
-                    elif portion_ratio >= 0.3:
-                        amount = "Normal"
-                        multiplier = 2.0
-                    elif portion_ratio >= 0.2:
-                        amount = "Less"
-                        multiplier = 1.0
-                    else:
-                        amount = "Little"
-                        multiplier = 0.5
+            if box_area > 0 and label in price_config:
+                # --- Portion thresholds ---
+                if portion_ratio < 0.03:      
+                    portion = 'small'
+                    multiplier = 0.6
+                elif portion_ratio < 0.08:   
+                    portion = 'medium-small'
+                    multiplier = 0.8
+                elif portion_ratio < 0.12:    
+                    portion = 'medium'
+                    multiplier = 1
+                elif portion_ratio < 0.16:   
+                    portion = 'medium-large'
+                    multiplier = 1.2
+                else:                       
+                    portion = 'large'
+                    multiplier = 1.5
 
-                    base_price = price_config[label]["base_price"]
-                    item_price = (base_price * multiplier)
-                    total_price += item_price
+                base_price = price_config[label]["base_price"]
+                item_price = (base_price * multiplier)
+                total_price += item_price
 
-                    detected_items.append([
-                        pretty_label,
-                        f"{portion_ratio*100:.2f}%",  # Convert to percentage
-                        amount,
-                        f"RM {item_price:.2f}"
-                    ])
-            
-            # 🆕 alert message if detect non-food image
-            if len(detected_items) == 0:
-                st.warning("⚠️ The object is detected, but it cannot be recognized as a food item from menu")
+                detected_items.append([
+                    pretty_label,
+                    f"{portion_ratio*100:.2f}%",  # Convert to percentage
+                    portion,
+                    f"RM {item_price:.2f}"
+                ])
+    else:
+        pass
+    
+if detected_items:
+    st.subheader("🧾 Detected Items and Prices")
+    price_table = pd.DataFrame(detected_items, columns=["Item", "Portion Ratio (%)", "Amount", "Item Price"])
+    price_table.index = np.arange(1, len(price_table) + 1) 
+    st.table(price_table)
+        
+    # Show total price
+    st.success(f"💰 Total Price: RM {total_price:.2f}")
+
