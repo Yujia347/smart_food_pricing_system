@@ -77,7 +77,7 @@ def adjust_prices(price_config):
     st.sidebar.header("🔧 Adjust Item Prices")
     updated_config = {}
     for item, pricing in sorted(price_config.items()):
-        with st.sidebar.expander(f"⚙️ {item.replace('_', ' ').title()}", expanded=False):
+        with st.sidebar.expander(f"{item.replace('_', ' ').title()}", expanded=False):
             base_price = st.number_input(f"Base Price for {item}", min_value=0.0, value=pricing["base_price"], step=0.1)
             updated_config[item] = {"base_price": base_price}
     return updated_config
